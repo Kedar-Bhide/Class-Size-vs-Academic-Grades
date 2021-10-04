@@ -1,0 +1,154 @@
+---
+title: "Class Size vs Academic Grades"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+```{r}
+star = read_csv("Star.csv")
+Old_value <- "regular.with.aide"
+New_value <- "regular"
+for (i in seq_along(star$classk)) {
+    if (star$classk[i] == "regular.with.aide"){
+      star$classk[i] <- "regular"
+    } 
+}
+for (i in seq_along(star$classk)) {
+    if (star$classk[i] == "small.class"){
+      star$classk[i] <- "small"
+    } 
+}
+for (i in seq_along(star$race)) {
+    if (star$race[i] == "other"){
+      star$race[i] <- "white"
+    } 
+}
+
+star
+
+star_sample = star %>%
+  slice(1:10)%>%
+  select(-X1)
+```
+
+
+```{r lurking variables}
+
+# Before I started researching the relationship between the class sizes and the scores of math and reading, I decided to compare other variables that might affect the relationship of the class sizes and the scores, working as a lurking variables. A lurking variable is a variable that is unknown and not controlled for; it has an important, significant effect on the variables of interest. The reason to check if there are any lurking variables is that if I do not, then I will not be able to find out if the variables are misleading or biased.How misleading these analyses are will depend on how severely the lurking variables affect the dependent variable. The very first lurking variable I chose to see if there is a relationship between the dependent and independent variable is the years of total teaching experience of the teacher for each class. 
+
+TotalTeachingYear = star$totalTeachingYear
+Math = star$math
+Reading = star$reading
+
+lm.MT = lm(Math~TotalTeachingYear)
+summary(lm.MT)
+
+plot(TotalTeachingYear, Math, main = "Total Teaching Years vs Math Scores ",
+     xlab = "Total Teaching Year", ylab = "Math Scores", ylim = c(0,800),
+     frame = FALSE)
+abline(lm(Math ~ TotalTeachingYear, data = star), col = "blue")
+
+
+lm.RT = lm(Reading~TotalTeachingYear)
+summary(lm.RT)
+
+plot(TotalTeachingYear, Reading, main = "Total Teaching Years vs Reading Scores ",
+     xlab = "Total Teaching Year", ylab = "Reading Scores", ylim = c(0,800),
+     frame = FALSE)
+abline(lm(Reading ~ TotalTeachingYear, data = star), col = "red")
+
+# From the linear regressions from both graphs, I could figure out that there are significant associations between total teaching years and math scores and between total teaching years and reading scores (P-values for both summaries are significantly small). Unfortunately, due to the summaries from above, we conclude that "total teaching years of teachers" is a lurking variable for both reading and math scores. For research results to be valid, lurking variables must be identified and then either eliminated, held constant, or included in the study. So, I decided to include total teaching years of teacher for each class in my research.
+```
+
+
+```{r}
+
+modelMath <- lm(Math ~ star$classk+TotalTeachingYear+star$sex+star$freelunk+star$race)
+
+summary(modelMath)
+
+plot(modelMath)
+
+modelReading <- lm(Reading ~ star$classk+TotalTeachingYear+star$sex+star$freelunk+star$race)
+
+summary(modelReading)
+
+plot(modelReading)
+
+results <- fastDummies::dummy_columns(star)
+
+
+```
+
+
+```{r}
+
+ggplot(star, aes(x=math, y=classk))+
+  geom_point()
+
+ggplot(star, aes(y=math, x=schidkn))+
+  geom_point()
+
+low = quantile(star$math, probs=0.05)
+high = quantile(star$math, probs=0.95)
+
+ggplot(star, aes(x=math))+
+  geom_density()+
+  geom_vline(xintercept = low, color = "red")+
+  geom_vline(xintercept = high, color = "red")+
+  ggtitle("Math Score Frequency")
+
+low
+high
+
+low = quantile(star$reading, probs=0.05)
+high = quantile(star$reading, probs=0.95)
+
+ggplot(star, aes(x=reading))+
+  geom_density()+
+  geom_vline(xintercept = low, color = "red")+
+  geom_vline(xintercept = high, color = "red")+
+  ggtitle("Reading Score Frequency")
+
+low
+high
+
+```
+
+
+```{r}
+star = star %>%
+  filter(race=="white")
+
+low = quantile(star$math, probs=0.05)
+high = quantile(star$math, probs=0.95)
+
+ggplot(star, aes(x=math))+
+  geom_density()+
+  geom_vline(xintercept = low, color = "red")+
+  geom_vline(xintercept = high, color = "red")+
+  ggtitle("Math Score Frequency White")
+
+low 
+high
+
+low = quantile(star$reading, probs=0.05)
+high = quantile(star$reading, probs=0.95)
+
+ggplot(star, aes(x=reading))+
+  geom_density()+
+  geom_vline(xintercept = low, color = "red")+
+  geom_vline(xintercept = high, color = "red")+
+  ggtitle("Reading Score Frequency White")
+
+low
+high
+
+
+```
+
+
